@@ -1,8 +1,6 @@
-Flask
-yfinance
+Flask>=2.0
+yfinance>=0.2
 pandas
 numpy
-requests
-beautifulsoup4
-lxml
+redis>=4.0
 gunicorn
