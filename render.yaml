@@ -1,16 +1,14 @@
 services:
   - type: web
-    name: shadowquantfx-api
+    name: sqfx-api
     env: python
-    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
-    autoDeploy: true
+    plan: free
 
   - type: worker
-    name: shadowquantfx-worker
+    name: sqfx-worker
     env: python
-    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python worker.py
-    autoDeploy: true
+    plan: free
