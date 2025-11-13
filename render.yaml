@@ -1,7 +1,16 @@
 services:
   - type: web
-    name: shadowquantfx-backend
+    name: shadowquantfx-api
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
+    autoDeploy: true
+
+  - type: worker
+    name: shadowquantfx-worker
+    env: python
     plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python worker.py
+    autoDeploy: true
