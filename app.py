@@ -1,47 +1,33 @@
-from flask import Flask, jsonify
-import yfinance as yf
-import threading, time
+# app.py
 import os
+import json
+import logging
+from flask import Flask, jsonify
+import redis
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-# Assets we will fetch
-assets = {
-    "Forex": ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "AUDUSD=X", "USDCAD=X"],
-    "Indices": ["^GSPC", "^IXIC"]  # S&P 500, NASDAQ
-}
-
-latest_data = {}
-
-def fetch_loop():
-    while True:
-        print("Fetching live data...")
-        for category, syms in assets.items():
-            for sym in syms:
-                try:
-                    ticker = yf.Ticker(sym)
-                    data = ticker.history(period="1d", interval="1m")
-                    if not data.empty:
-                        latest_data[sym] = round(float(data["Close"].iloc[-1]), 5)
-                    else:
-                        latest_data[sym] = "N/A"
-                except Exception as e:
-                    latest_data[sym] = f"ERR"
-        print("Updated:", latest_data)
-        time.sleep(30)  # refresh interval
-
-threading.Thread(target=fetch_loop, daemon=True).start()
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+REDIS_KEY = os.environ.get("REDIS_KEY", "sqfx:latest")
+r = redis.from_url(REDIS_URL, decode_responses=True)
 
 @app.route("/")
 def home():
-    return {
-        "status": "ShadowQuantFX API Active",
-        "assets": list(latest_data.keys())
-    }
+    return {"status": "ShadowQuantFX API Active", "note": "GET /prices for latest snapshot"}
 
 @app.route("/prices")
 def prices():
-    return latest_data
+    raw = r.get(REDIS_KEY)
+    if not raw:
+        return jsonify({"status": "ok", "message": "no data yet"}), 200
+    try:
+        data = json.loads(raw)
+    except Exception:
+        # if something odd, return raw
+        return jsonify({"status": "ok", "data_raw": raw})
+    return jsonify(data)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
